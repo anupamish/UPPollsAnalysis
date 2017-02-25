@@ -1,52 +1,6 @@
 import config
-import json
 import mysql.connector as msc
 import tweepy
-
-
-# Tweepy Stream Listener
-# This handles all the tweets being streamed from the Twitter Streaming API.
-class TweepyStreamListener(tweepy.StreamListener):
-
-    def on_status(self, status):
-        # TODO: Insert this tweet in to the DB
-        print(status.text)
-
-    def on_data(self, data):
-        try:
-            f = open(config.FILE_NAME, 'a')
-            tweet = json.loads(data)
-            tweet_str = "{},{},\"{}\",{},{}\n".format(
-                tweet['id'],
-                tweet['created_at'],
-                tweet['text'].encode('utf8'),
-                tweet['user']['id'],
-                tweet['user']['name'].encode('utf8'))
-            f.write(tweet_str)
-            f.close()
-        except:
-            print(data)
-
-    def on_error(self, status_code):
-        if status_code == 420:
-            return False
-
-
-# Add tweet to the database
-def add_tweet(tweet):
-    pass
-
-
-# Strip the tweet to retian the meaningful fields
-def skim_tweet(tweet):
-    pass
-
-
-# Authenticate the tweepy module and return the API
-def get_tweepy_api():
-    auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
-    auth.set_access_token(config.ACCESS_TOKEN, config.ACCESS_TOKEN_SECRET)
-    return tweepy.API(auth)
 
 
 """
@@ -64,6 +18,7 @@ TABLES['tweets'] = (
     "   `text` VARCHAR(140) NOT NULL"
     "   `user_id` BIGINT NOT NULL"
     "   `user_name` VARCHAR(15) NOT NULL"
+    "   PRIMARY KEY (`id`)"
     ")")
 
 
@@ -74,14 +29,14 @@ def setup_mysql_connection():
         conn = msc.connect(**config.MYSQL_CONFIG)
     except msc.Error as err:
         if err.errno == msc.errorcode.ER_ACCESS_DENIED_ERROR:
-            print "Error: Username or Password is incorrect."
+            print "ERROR: Username or Password is incorrect."
         elif err.errno == msc.errorcode.ER_BAD_DB_ERROR:
-            print "Error: Bad database name."
+            print "ERROR: Bad database name."
         else:
-            print "Error", err
+            print "ERROR: {}".format(err)
 
     if conn is not None:
-        print "Connection to MYSQL db established."
+        print "INFO: Established connection to MYSQL Server."
 
     return conn
 
@@ -89,16 +44,51 @@ def setup_mysql_connection():
 # Return the requested table in the db. Create a table if it doesn't exist.
 def get_db_table(cursor, name):
     try:
-        print "Creating table", name, ":"
+        print "INFO: Creating table {};".format(name)
         cursor.execute(TABLES[name])
     except msc.Error as err:
         if err.errno == msc.errorcode.ER_TABLE_EXISTS_ERROR:
             print "Already Exists."
         else:
-            print(err.msg)
+            print err.msg
     else:
-        print("OK")
+        print "OK"
     pass
+
+
+# Strip the tweet to retain the meaningful fields
+def skim_tweet(tweet):
+    return {"id": tweet.id,
+            "timestamp": tweet.created_at,
+            "text": tweet.text,
+            "user_id": tweet.user.id,
+            "user_name": tweet.user.name}
+
+
+# Add tweet to the database
+def add_tweet(tweet):
+    pass
+
+
+# Tweepy Stream Listener
+# This handles all the tweets being streamed from the Twitter Streaming API.
+class TweepyStreamListener(tweepy.StreamListener):
+
+    def on_status(self, status):
+        # TODO: Insert this tweet in to the DB
+        tweet = skim_tweet(status)
+        print(tweet)
+
+    def on_error(self, status_code):
+        if status_code == 420:
+            return False
+
+
+# Authenticate the tweepy module and return the API
+def get_tweepy_api():
+    auth = tweepy.OAuthHandler(config.CONSUMER_KEY, config.CONSUMER_SECRET)
+    auth.set_access_token(config.ACCESS_TOKEN, config.ACCESS_TOKEN_SECRET)
+    return tweepy.API(auth)
 
 
 if __name__ == '__main__':
@@ -114,5 +104,5 @@ if __name__ == '__main__':
 
     # Disconnet from the MySQL database
     if db is not None:
-        print "Closing connection to MYSQL db."
+        print "INFO: Closing connection to MYSQL db."
         db.close()
