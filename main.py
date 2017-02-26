@@ -83,10 +83,23 @@ def add_tweet(cursor, tweet):
 # This handles all the tweets being streamed from the Twitter Streaming API.
 class TweepyStreamListener(tweepy.StreamListener):
 
+    def __init__(self, api, cursor):
+        self.api = api
+        self.cursor = cursor
+        self.cnt = 0
+        self.success = 0
+
     def on_status(self, status):
-        # TODO: Insert this tweet in to the DB
-        tweet = skim_tweet(status)
-        print(tweet)
+        if self.cnt < 200:
+            tweet = skim_tweet(status)
+            if add_tweet(self.cursor, tweet):
+                self.success += 1
+            self.cnt += 1
+            return True
+        else:
+            print "INFO: {}/{} successful insertions".format(self.success,
+                                                             self.cnt)
+            return False
 
     def on_error(self, status_code):
         if status_code == 420:
