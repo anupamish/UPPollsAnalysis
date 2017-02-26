@@ -13,13 +13,18 @@ MySQL Table Design
 TABLES = {}
 TABLES['tweets'] = (
     "CREATE TABLE `tweets` ("
-    "   `id` BIGINT NOT NULL"
-    "   `timestamp` DATE NOT NULL"
-    "   `text` VARCHAR(140) NOT NULL"
-    "   `user_id` BIGINT NOT NULL"
-    "   `user_name` VARCHAR(15) NOT NULL"
+    "   `id` BIGINT NOT NULL UNIQUE,"
+    "   `timestamp` DATE NOT NULL,"
+    "   `text` VARCHAR(140) NOT NULL,"
+    "   `user_id` BIGINT NOT NULL,"
+    "   `user_name` VARCHAR(50) NOT NULL,"
     "   PRIMARY KEY (`id`)"
     ")")
+
+add_status = ("INSERT INTO tweets"
+              "(id, timestamp, text, user_id, user_name) "
+              "VALUES "
+              "(%(id)s, %(timestamp)s, %(text)s, %(user_id)s, %(user_name)s)")
 
 
 # Connect to MySQL server
@@ -44,30 +49,34 @@ def setup_mysql_connection():
 # Return the requested table in the db. Create a table if it doesn't exist.
 def get_db_table(cursor, name):
     try:
-        print "INFO: Creating table {};".format(name)
+        print "INFO: Creating table {}".format(name)
         cursor.execute(TABLES[name])
     except msc.Error as err:
         if err.errno == msc.errorcode.ER_TABLE_EXISTS_ERROR:
-            print "Already Exists."
+            print "INFO: Already Exists."
         else:
             print err.msg
     else:
-        print "OK"
-    pass
+        print "INFO: OK"
 
 
 # Strip the tweet to retain the meaningful fields
 def skim_tweet(tweet):
     return {"id": tweet.id,
-            "timestamp": tweet.created_at,
+            "timestamp": tweet.created_at.date(),
             "text": tweet.text,
             "user_id": tweet.user.id,
             "user_name": tweet.user.name}
 
 
 # Add tweet to the database
-def add_tweet(tweet):
-    pass
+def add_tweet(cursor, tweet):
+    try:
+        cursor.execute(add_status, tweet)
+    except:
+        return False
+    else:
+        return True
 
 
 # Tweepy Stream Listener
