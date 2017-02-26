@@ -30,6 +30,7 @@ add_status = ("INSERT INTO tweets"
 # Connect to MySQL server
 def setup_mysql_connection():
     conn = None
+
     try:
         conn = msc.connect(**config.MYSQL_CONFIG)
     except msc.Error as err:
@@ -92,9 +93,11 @@ class TweepyStreamListener(tweepy.StreamListener):
     def on_status(self, status):
         if self.cnt < 200:
             tweet = skim_tweet(status)
+
             if add_tweet(self.cursor, tweet):
                 self.success += 1
             self.cnt += 1
+
             return True
         else:
             print "INFO: {}/{} successful insertions".format(self.success,
