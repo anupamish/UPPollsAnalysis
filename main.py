@@ -117,14 +117,24 @@ if __name__ == '__main__':
     # Connect to MySQL database
     db = setup_mysql_connection()
 
-    # Setup the Tweepy API and Authenticaion
-    api = get_tweepy_api()
-    streamListener = TweepyStreamListener()
-    stream = tweepy.Stream(auth=api.auth, listener=streamListener)
-
-    stream.filter(track=['Trump'])
-
-    # Disconnet from the MySQL database
     if db is not None:
+        cursor = db.cursor()
+        get_db_table(cursor, 'tweets')
+
+        # Set character set
+        cursor.execute('SET NAMES utf8mb4')
+        cursor.execute("SET CHARACTER SET utf8mb4")
+        cursor.execute("SET character_set_connection=utf8mb4")
+
+        # Setup the Tweepy API and Authenticaion
+        api = get_tweepy_api()
+        streamListener = TweepyStreamListener(api, cursor)
+        stream = tweepy.Stream(auth=api.auth, listener=streamListener)
+
+        stream.filter(track=['Trump'])
+
+        # Disconnet from the MySQL database
         print "INFO: Closing connection to MYSQL db."
+        db.commit()
+        cursor.close()
         db.close()
