@@ -3,6 +3,9 @@ init:
 	pip install -r requirements.txt
 
 start:
-	python main.py
+	python stream.py
 
-.PHONY: init start
+analyse:
+	python analyse.py
+
+.PHONY: init start analyse

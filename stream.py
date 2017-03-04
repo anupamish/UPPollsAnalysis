@@ -1,4 +1,5 @@
 import config
+import datetime
 import mysql.connector as msc
 import tweepy
 
@@ -87,11 +88,12 @@ class TweepyStreamListener(tweepy.StreamListener):
     def __init__(self, api, cursor):
         self.api = api
         self.cursor = cursor
+        self.expire = datetime.datetime.now() + datetime.timedelta(minutes=10)
         self.cnt = 0
         self.success = 0
 
     def on_status(self, status):
-        if self.cnt < 200:
+        if self.expire > datetime.datetime.now():
             tweet = skim_tweet(status)
 
             if add_tweet(self.cursor, tweet):
