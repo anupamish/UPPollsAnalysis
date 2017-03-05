@@ -13,6 +13,7 @@ analysis = {"ave_polarity": 0,
             "ave_subjectivity": 0,
             "max_subjectivity": -1,
             "min_subjectivity": 1,
+            "tweets": 0,
             "words": {}}
 
 
@@ -55,6 +56,7 @@ if __name__ == '__main__':
         cursor.execute(get_tweets)
 
         for (tid, text) in cursor:
+            analysis["tweets"] += 1
             tweet = text.replace("\n", " ")
             blob = TextBlob(tweet)
             sentiment = blob.sentiment
@@ -82,7 +84,8 @@ if __name__ == '__main__':
         analysis["ave_subjectivity"] /= len(analysed_tweets)
         analysis["ave_subjectivity"] -= 1
 
-        print analysis
+        print "INFO: Tweet stream analysis."
+        print json.dumps(analysis, sort_keys=True, indent=4)
 
         with open(config.JSON_FILE, 'w') as fp:
             json.dump(analysis, fp, sort_keys=True, indent=4)
