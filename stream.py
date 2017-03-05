@@ -88,7 +88,7 @@ class TweepyStreamListener(tweepy.StreamListener):
     def __init__(self, api, cursor):
         self.api = api
         self.cursor = cursor
-        self.expire = datetime.datetime.now() + datetime.timedelta(minutes=10)
+        self.expire = datetime.datetime.now() + datetime.timedelta(hours=1)
         self.cnt = 0
         self.success = 0
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         streamListener = TweepyStreamListener(api, cursor)
         stream = tweepy.Stream(auth=api.auth, listener=streamListener)
 
-        stream.filter(track=['Trump'])
+        stream.filter(track=['#upelections2017, @yadavakhilesh'])
 
         # Disconnet from the MySQL database
         print "INFO: Closing connection to MYSQL db."
