@@ -1,9 +1,19 @@
 from textblob import TextBlob
+
 import config
+import json
 import mysql.connector as msc
 
-
 get_tweets = "SELECT id, text FROM tweets"
+
+analysed_tweets = []
+analysis = {"ave_polarity": 0,
+            "max_polarity": -1,
+            "min_polarity": 1,
+            "ave_subjectivity": 0,
+            "max_subjectivity": -1,
+            "min_subjectivity": 1,
+            "words": {}}
 
 
 # Connect to MySQL server
@@ -41,13 +51,41 @@ if __name__ == '__main__':
     if db is not None:
         cursor = db.cursor()
 
+        # TODO: Catch table not exists error
         cursor.execute(get_tweets)
 
         for (tid, text) in cursor:
             tweet = text.replace("\n", " ")
-            sentiment = analyse_sentiment(tweet)
+            blob = TextBlob(tweet)
+            sentiment = blob.sentiment
             if sentiment.polarity != 0:
-                print "{}: {}".format(tid, sentiment)
+                analysed_tweets.append((tid, sentiment.polarity,
+                                        sentiment.subjectivity))
+                analysis["ave_polarity"] += (sentiment.polarity + 1)
+                analysis["ave_subjectivity"] += (sentiment.subjectivity + 1)
+
+                if analysis["max_polarity"] < sentiment.polarity:
+                    analysis["max_polarity"] = sentiment.polarity
+
+                if analysis["min_polarity"] > sentiment.polarity:
+                    analysis["min_polarity"] = sentiment.polarity
+
+                if analysis["max_subjectivity"] < sentiment.subjectivity:
+                    analysis["max_subjectivity"] = sentiment.subjectivity
+
+                if analysis["min_subjectivity"] > sentiment.subjectivity:
+                    analysis["min_subjectivity"] = sentiment.subjectivity
+
+        analysis["ave_polarity"] /= len(analysed_tweets)
+        analysis["ave_polarity"] -= 1
+
+        analysis["ave_subjectivity"] /= len(analysed_tweets)
+        analysis["ave_subjectivity"] -= 1
+
+        print analysis
+
+        with open(config.JSON_FILE, 'w') as fp:
+            json.dump(analysis, fp, sort_keys=True, indent=4)
 
         # Disconnet from the MySQL database
         print "INFO: Closing connection to MYSQL db."
