@@ -1,5 +1,6 @@
 
 init:
+	mkdir -p analysis
 	pip install -r requirements.txt
 
 start:
