@@ -1,20 +1,44 @@
 from textblob import TextBlob
 
 import config
+import datetime
 import json
 import mysql.connector as msc
+
+
+TABLES = {}
+TABLES['analysis'] = (
+    "CREATE TABLE `analysis` ("
+    "   `id` INT NOT NULL AUTO_INCREMENT,"
+    "   `timestamp` DATE NOT NULL,"
+    "   `ave_pol` FLOAT NOT NULL,"
+    "   `min_pol` FLOAT NOT NULL,"
+    "   `max_pol` FLOAT NOT NULL,"
+    "   `ave_sub` FLOAT NOT NULL,"
+    "   `min_sub` FLOAT NOT NULL,"
+    "   `max_sub` FLOAT NOT NULL,"
+    "   `tweets` BIGINT NOT NULL,"
+    "   PRIMARY KEY (`id`)"
+    ")")
+
+add_analysis = ("INSERT INTO analysis"
+                "(timestamp, ave_pol, min_pol, max_pol,"
+                " ave_sub, min_sub, max_sub, tweets) "
+                "VALUES "
+                "(%(timestamp)s, %(ave_pol)s, %(min_pol)s, %(max_pol)s,"
+                " %(ave_sub)s, %(min_sub)s, %(max_sub)s, %(tweets)s)")
 
 get_tweets = "SELECT id, text FROM tweets"
 
 analysed_tweets = []
-analysis = {"ave_polarity": 0,
-            "max_polarity": -1,
-            "min_polarity": 1,
-            "ave_subjectivity": 0,
-            "max_subjectivity": -1,
-            "min_subjectivity": 1,
-            "tweets": 0,
-            "words": {}}
+analysis = {"timestamp": datetime.date.today().isoformat(),
+            "ave_pol": 0,
+            "min_pol": 1,
+            "max_pol": -1,
+            "ave_sub": 0,
+            "min_sub": 1,
+            "max_sub": -1,
+            "tweets": 0}
 
 
 # Connect to MySQL server
@@ -35,6 +59,20 @@ def setup_mysql_connection():
         print "INFO: Established connection to MYSQL Server."
 
     return conn
+
+
+# Return the requested table in the db. Create a table if it doesn't exist.
+def get_db_table(cursor, name):
+    try:
+        print "INFO: Creating table {}".format(name)
+        cursor.execute(TABLES[name])
+    except msc.Error as err:
+        if err.errno == msc.errorcode.ER_TABLE_EXISTS_ERROR:
+            print "INFO: Already Exists."
+        else:
+            print err.msg
+    else:
+        print "INFO: OK"
 
 
 # Analyse the sentiment of the text
@@ -63,34 +101,43 @@ if __name__ == '__main__':
             if sentiment.polarity != 0:
                 analysed_tweets.append((tid, sentiment.polarity,
                                         sentiment.subjectivity))
-                analysis["ave_polarity"] += (sentiment.polarity + 1)
-                analysis["ave_subjectivity"] += (sentiment.subjectivity + 1)
+                analysis["ave_pol"] += (sentiment.polarity + 1)
+                analysis["ave_sub"] += (sentiment.subjectivity + 1)
 
-                if analysis["max_polarity"] < sentiment.polarity:
-                    analysis["max_polarity"] = sentiment.polarity
+                if analysis["max_pol"] < sentiment.polarity:
+                    analysis["max_pol"] = sentiment.polarity
 
-                if analysis["min_polarity"] > sentiment.polarity:
-                    analysis["min_polarity"] = sentiment.polarity
+                if analysis["min_pol"] > sentiment.polarity:
+                    analysis["min_pol"] = sentiment.polarity
 
-                if analysis["max_subjectivity"] < sentiment.subjectivity:
-                    analysis["max_subjectivity"] = sentiment.subjectivity
+                if analysis["max_sub"] < sentiment.subjectivity:
+                    analysis["max_sub"] = sentiment.subjectivity
 
-                if analysis["min_subjectivity"] > sentiment.subjectivity:
-                    analysis["min_subjectivity"] = sentiment.subjectivity
+                if analysis["min_sub"] > sentiment.subjectivity:
+                    analysis["min_sub"] = sentiment.subjectivity
 
-        analysis["ave_polarity"] /= len(analysed_tweets)
-        analysis["ave_polarity"] -= 1
+        analysis["ave_pol"] /= len(analysed_tweets)
+        analysis["ave_pol"] -= 1
 
-        analysis["ave_subjectivity"] /= len(analysed_tweets)
-        analysis["ave_subjectivity"] -= 1
+        analysis["ave_sub"] /= len(analysed_tweets)
+        analysis["ave_sub"] -= 1
 
         print "INFO: Tweet stream analysis."
         print json.dumps(analysis, sort_keys=True, indent=4)
+
+        get_db_table(cursor, 'analysis')
+
+        try:
+            cursor.execute(add_analysis, analysis)
+        except msc.Error as err:
+            print "WARNING: Stream analysis could not be added to the table."
+            print err
 
         with open(config.JSON_FILE, 'w') as fp:
             json.dump(analysis, fp, sort_keys=True, indent=4)
 
         # Disconnet from the MySQL database
         print "INFO: Closing connection to MYSQL db."
+        db.commit()
         cursor.close()
         db.close()
