@@ -93,17 +93,20 @@ class TweepyStreamListener(tweepy.StreamListener):
         self.success = 0
 
     def on_status(self, status):
-        if self.expire > datetime.datetime.now():
-            tweet = skim_tweet(status)
+        try:
+            if self.expire > datetime.datetime.now():
+                tweet = skim_tweet(status)
 
-            if add_tweet(self.cursor, tweet):
-                self.success += 1
-            self.cnt += 1
+                if add_tweet(self.cursor, tweet):
+                    self.success += 1
+                self.cnt += 1
 
-            return True
-        else:
-            print "INFO: {}/{} successful insertions".format(self.success,
-                                                             self.cnt)
+                return True
+            else:
+                print "INFO: {}/{} successful insertions".format(self.success,
+                                                                 self.cnt)
+                return False
+        except KeyboardInterrupt:
             return False
 
     def on_error(self, status_code):
@@ -136,7 +139,10 @@ if __name__ == '__main__':
         streamListener = TweepyStreamListener(api, cursor)
         stream = tweepy.Stream(auth=api.auth, listener=streamListener)
 
-        stream.filter(track=['#upelections2017, @yadavakhilesh'])
+        stream.filter(track=['#upelections2017,'
+                             '@yadavakhilesh,'
+                             '#bjp, #sp, #bsp,'
+                             '#modi, #mayawati, #upelections'])
 
         # Disconnet from the MySQL database
         print "INFO: Closing connection to MYSQL db."
