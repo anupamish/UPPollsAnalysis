@@ -1,5 +1,6 @@
 # Custom ignores
 config.py
+analysis/
 
 # Created by https://www.gitignore.io/api/macos,windows,vim,python
 
