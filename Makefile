@@ -7,6 +7,9 @@ init:
 	mkdir -p analysis
 	pip install -r requirements.txt
 
+# Run 'make start' to run both stream and analyse
+start: stream analyse
+
 # Run `make stream` to stream the tweets for 1 hour
 stream:
 	python stream.py
