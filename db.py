@@ -4,9 +4,30 @@ import mysql.connector as msc
 
 """
 MySQL Table Design
------------------------------------------------
-| id | timestamp | text | user_id | user_name |
------------------------------------------------
+
+Tweets
++-------------------------+
+| id:        BIGINT       |
+| timestamp: DATE         |
+| text:      VARCHAR(140) |
+| user_id:   BIGINT       |
+| user_name: VARCHAR(50)  |
++-------------------------+
+
+Analysis
++-------------------+
+| id:        INT    |
+| timestamp: DATE   |
+| ave_pol:   FLOAT  |
+| min_pol:   FLOAT  |
+| max_pol:   FLOAT  |
+| ave_sub:   FLOAT  |
+| min_sub:   FLOAT  |
+| max_sub:   FLOAT  |
+| neg_pol:   FLOAT  |
+| neg_sub:   FLOAT  |
+| tweets:    BIGINT |
++-------------------+
 """
 
 TABLES = {}
